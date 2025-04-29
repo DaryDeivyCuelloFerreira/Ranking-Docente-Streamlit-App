@@ -627,7 +627,7 @@ def preparar_tabla(df):
     df = df.dropna(subset=['Ranking'])
     df['Ranking'] = pd.to_numeric(df['Ranking'], errors='coerce')
 
-    # Agrupar por profesor/asignatura y contar cuántos votos hay
+    # Agrupar por profesor/asignatura
     df_grouped = df.groupby(['Carrera', 'Nombre', 'Asignatura']).agg(
         Votos=('Ranking', 'count'),
         Ranking=('Ranking', 'mean')
@@ -635,19 +635,25 @@ def preparar_tabla(df):
 
     df_grouped['Ranking'] = df_grouped['Ranking'].round(1)
 
-    # Asignar medallas
-    df_grouped['Medalla'] = pd.cut(
-        df_grouped['Ranking'],
-        bins=[-float('inf'), 3.79, 4.09, 4.49, float('inf')],
-        labels=['-', '🥉 Bronce', '🥈 Plata', '🥇 Oro'],
-        right=True
-    )
+    # Nueva lógica de asignar medallas: considerando Ranking + cantidad de votos
+    def asignar_medalla(row):
+        if row['Votos'] >= 15 and row['Ranking'] >= 4.5:
+            return '🥇 Oro'
+        elif row['Votos'] >= 10 and 4.1 <= row['Ranking'] < 4.5:
+            return '🥈 Plata'
+        elif row['Votos'] >= 6 and 3.8 <= row['Ranking'] < 4.1:
+            return '🥉 Bronce'
+        else:
+            return '-'
 
-    # Acortar textos si es muy largo (opcional)
+    df_grouped['Medalla'] = df_grouped.apply(asignar_medalla, axis=1)
+
+    # Recortar textos largos
     df_grouped['Asignatura'] = df_grouped['Asignatura'].apply(lambda x: (x[:30] + '...') if len(x) > 30 else x)
     df_grouped['Nombre'] = df_grouped['Nombre'].apply(lambda x: (x[:25] + '...') if len(x) > 25 else x)
 
     return df_grouped[['Nombre', 'Asignatura', 'Ranking', 'Votos', 'Medalla']]
+
 
 
 def aplicar_estilos(df):
