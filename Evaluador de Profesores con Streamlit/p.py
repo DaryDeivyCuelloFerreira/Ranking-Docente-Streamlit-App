@@ -679,7 +679,6 @@ st.sidebar.header("Navegación")
 seccion = st.sidebar.radio('Seleccione:', ['Seleccione una opción', 'Técnicos', 'Registrar Cuenta', 'Login', 'Calificar'])
 
 carreras_con_profes = sorted(df_tecnicos['Carrera'].unique())
-
 if seccion == 'Técnicos':
     carrera = st.sidebar.selectbox('Seleccione Técnico:', carreras_con_profes)
     if carrera:
@@ -697,9 +696,16 @@ if seccion == 'Técnicos':
             df_filtrado = df_filtrado[df_filtrado['Nombre'].str.contains(buscar, case=False)]
 
         if not df_filtrado.empty:
+            # Mostrar título de la asignatura si se filtró
+            if asignatura != 'Todas':
+                st.markdown(f"### 📚 Resultados para: **{asignatura}**")
+            else:
+                st.markdown("### 📚 Resultados generales")
+
             st.dataframe(aplicar_estilos(preparar_tabla(df_filtrado)).format({'Ranking': '{:.1f}'}))
         else:
             st.info('No hay resultados.')
+
 
 elif seccion == 'Registrar Cuenta':
     st.subheader("Crear cuenta nueva")
