@@ -700,9 +700,7 @@ elif seccion == 'Registrar Cuenta':
 
     if st.button("Registrar"):
         if nombre_usuario and email and password and carrera:
-            if user_ip in df_usuarios['ip'].dropna().values:
-                st.error("Este dispositivo ya está registrado.")
-            elif email.strip() in df_usuarios['email'].astype(str).str.strip().values:
+            if email.strip() in df_usuarios['email'].astype(str).str.strip().values:
                 st.error("Correo ya registrado.")
             else:
                 nuevo = pd.DataFrame({
@@ -710,7 +708,7 @@ elif seccion == 'Registrar Cuenta':
                     'email': [email.strip()],
                     'password': [password.strip()],
                     'votos': [5],
-                    'ip': [user_ip],
+                    'ip': [user_ip],  # Puedes seguir guardando user_ip si quieres, pero no para validar
                     'carrera': [carrera],
                     'votados': [None]
                 })
