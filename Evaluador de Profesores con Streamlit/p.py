@@ -626,30 +626,29 @@ else:
 def preparar_tabla(df):
     df = df.dropna(subset=['Ranking'])
     df['Ranking'] = pd.to_numeric(df['Ranking'], errors='coerce')
-    df_ordenado = df.sort_values(by='Ranking', ascending=False).reset_index(drop=True)
-    df_ordenado['Ranking'] = df_ordenado['Ranking'].round(1)
-    
-    # Añadimos las medallas
-    condiciones = [
-        (df_ordenado['Ranking'] >= 4.5),
-        (df_ordenado['Ranking'] >= 4.1) & (df_ordenado['Ranking'] < 4.5),
-        (df_ordenado['Ranking'] >= 3.8) & (df_ordenado['Ranking'] < 4.1)
-    ]
-    medallas = ['🥇 Oro', '🥈 Plata', '🥉 Bronce']
-    df_ordenado['Medalla'] = pd.cut(
-        df_ordenado['Ranking'], 
-        bins=[-float('inf'), 3.79, 4.09, 4.49, float('inf')], 
+
+    # Agrupar por profesor/asignatura y contar cuántos votos hay
+    df_grouped = df.groupby(['Carrera', 'Nombre', 'Asignatura']).agg(
+        Votos=('Ranking', 'count'),
+        Ranking=('Ranking', 'mean')
+    ).reset_index()
+
+    df_grouped['Ranking'] = df_grouped['Ranking'].round(1)
+
+    # Asignar medallas
+    df_grouped['Medalla'] = pd.cut(
+        df_grouped['Ranking'],
+        bins=[-float('inf'), 3.79, 4.09, 4.49, float('inf')],
         labels=['-', '🥉 Bronce', '🥈 Plata', '🥇 Oro'],
         right=True
     )
 
-    # --- Ajustamos el diseño ---
-    # Acortamos las columnas de texto demasiado largas
-    df_ordenado['Asignatura'] = df_ordenado['Asignatura'].apply(lambda x: (x[:30] + '...') if len(x) > 30 else x)
-    df_ordenado['Nombre'] = df_ordenado['Nombre'].apply(lambda x: (x[:25] + '...') if len(x) > 25 else x)
-    
-    # Mostramos solo las columnas principales
-    return df_ordenado[['Nombre', 'Asignatura', 'Ranking', 'Medalla']]
+    # Acortar textos si es muy largo (opcional)
+    df_grouped['Asignatura'] = df_grouped['Asignatura'].apply(lambda x: (x[:30] + '...') if len(x) > 30 else x)
+    df_grouped['Nombre'] = df_grouped['Nombre'].apply(lambda x: (x[:25] + '...') if len(x) > 25 else x)
+
+    return df_grouped[['Nombre', 'Asignatura', 'Ranking', 'Votos', 'Medalla']]
+
 
 def aplicar_estilos(df):
     def estilo(val):
