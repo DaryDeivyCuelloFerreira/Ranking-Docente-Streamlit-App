@@ -752,6 +752,8 @@ elif seccion == 'Calificar':
         st.warning("Debes iniciar sesión para calificar.")
     else:
         df_usuarios = pd.read_csv(archivo_usuarios)
+        df_calificaciones = pd.read_csv(archivo_calif) if os.path.exists(archivo_calif) else pd.DataFrame(columns=['Carrera', 'Asignatura', 'Nombre', 'Ranking'])
+        
         user_row = df_usuarios[df_usuarios['nombre_usuario'] == st.session_state.usuario].iloc[0]
         votos = user_row['votos']
         carrera_usuario = user_row['carrera']
@@ -792,26 +794,33 @@ elif seccion == 'Calificar':
                         "¿Lo recomendarías?"
                     ]
                     respuestas = [st.slider(p, 1, 5, 3) for p in preguntas]
+                    
                     if st.button("Enviar Calificación"):
                         promedio = sum(respuestas) / len(respuestas)
-                        nueva = {'Carrera': carrera_sel, 'Asignatura': asignatura_sel, 'Nombre': profesor_sel, 'Ranking': promedio}
+                        nueva = {
+                            'Carrera': carrera_sel,
+                            'Asignatura': asignatura_sel,
+                            'Nombre': profesor_sel,
+                            'Ranking': promedio
+                        }
 
-                        mask = (
-                            (df_calificaciones['Carrera'] == carrera_sel) &
-                            (df_calificaciones['Asignatura'] == asignatura_sel) &
-                            (df_calificaciones['Nombre'] == profesor_sel)
-                        )
-
-                        if mask.any():
-                            existente = df_calificaciones.loc[mask, 'Ranking'].values[0]
-                            nuevo = (existente + promedio) / 2
-                            df_calificaciones.loc[mask, 'Ranking'] = nuevo
-                        else:
-                            df_calificaciones = pd.concat([df_calificaciones, pd.DataFrame([nueva])], ignore_index=True)
-
+                        # 🚀 Siempre agregar el nuevo voto como nueva fila
+                        df_calificaciones = pd.concat([df_calificaciones, pd.DataFrame([nueva])], ignore_index=True)
+                        
                         df_calificaciones.to_csv(archivo_calif, index=False)
+                        
+                        # Actualizar los votos del usuario
                         df_usuarios.loc[df_usuarios['nombre_usuario'] == st.session_state.usuario, 'votos'] -= 1
                         nuevos_votados = ';'.join(votados + [identificador])
                         df_usuarios.loc[df_usuarios['nombre_usuario'] == st.session_state.usuario, 'votados'] = nuevos_votados
                         df_usuarios.to_csv(archivo_usuarios, index=False)
+                        
                         st.success("✅ Calificación enviada. ¡Gracias!")
+
+        # 🔥 Mostrar gráfico de votos para esta carrera
+        if not df_calificaciones.empty:
+            df_carrera_votos = df_calificaciones[df_calificaciones['Carrera'] == carrera_usuario]
+            if not df_carrera_votos.empty:
+                votos_por_profesor = df_carrera_votos.groupby('Nombre').size().sort_values(ascending=False)
+                st.subheader("📊 Cantidad de Votos por Profesor")
+                st.bar_chart(votos_por_profesor)
