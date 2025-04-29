@@ -628,18 +628,28 @@ def preparar_tabla(df):
     df['Ranking'] = pd.to_numeric(df['Ranking'], errors='coerce')
     df_ordenado = df.sort_values(by='Ranking', ascending=False).reset_index(drop=True)
     df_ordenado['Ranking'] = df_ordenado['Ranking'].round(1)
-    medallas = []
-    for ranking in df_ordenado['Ranking']:
-        if ranking >= 4.5:
-            medallas.append('🥇 Oro')
-        elif 4.1 <= ranking < 4.5:
-            medallas.append('🥈 Plata')
-        elif 3.8 <= ranking < 4.1:
-            medallas.append('🥉 Bronce')
-        else:
-            medallas.append('-')
-    df_ordenado['Medalla'] = medallas
-    return df_ordenado[['Carrera', 'Nombre', 'Asignatura', 'Ranking', 'Medalla']]
+    
+    # Añadimos las medallas
+    condiciones = [
+        (df_ordenado['Ranking'] >= 4.5),
+        (df_ordenado['Ranking'] >= 4.1) & (df_ordenado['Ranking'] < 4.5),
+        (df_ordenado['Ranking'] >= 3.8) & (df_ordenado['Ranking'] < 4.1)
+    ]
+    medallas = ['🥇 Oro', '🥈 Plata', '🥉 Bronce']
+    df_ordenado['Medalla'] = pd.cut(
+        df_ordenado['Ranking'], 
+        bins=[-float('inf'), 3.79, 4.09, 4.49, float('inf')], 
+        labels=['-', '🥉 Bronce', '🥈 Plata', '🥇 Oro'],
+        right=True
+    )
+
+    # --- Ajustamos el diseño ---
+    # Acortamos las columnas de texto demasiado largas
+    df_ordenado['Asignatura'] = df_ordenado['Asignatura'].apply(lambda x: (x[:30] + '...') if len(x) > 30 else x)
+    df_ordenado['Nombre'] = df_ordenado['Nombre'].apply(lambda x: (x[:25] + '...') if len(x) > 25 else x)
+    
+    # Mostramos solo las columnas principales
+    return df_ordenado[['Nombre', 'Asignatura', 'Ranking', 'Medalla']]
 
 def aplicar_estilos(df):
     def estilo(val):
